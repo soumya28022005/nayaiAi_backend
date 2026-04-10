@@ -1,0 +1,37 @@
+{
+  "name": "nyayaai-case-builder-backend",
+  "version": "1.0.0",
+  "description": "NyayaAI Case Builder - Legal Assistant Backend for Indian Users",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
+    "tesseract.js": "^5.0.4",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "legal",
+    "india",
+    "ai",
+    "ipc",
+    "bns",
+    "case-builder",
+    "nyayaai"
+  ],
+  "author": "NyayaAI Team",
+  "license": "MIT"
+}
