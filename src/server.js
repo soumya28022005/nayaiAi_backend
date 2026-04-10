@@ -51,6 +51,7 @@ const riskAnalysisRoute = require("./routes/riskAnalysis");
 const oppositionAgentRoute = require("./routes/oppositionAgent");
 const generateComplaintRoute = require("./routes/generateComplaint");
 const healthRoute = require("./routes/health");
+const similarCasesRoute = require("./routes/similarCases");
 
 // -------------------------------------------------------
 // Import Middleware
@@ -160,13 +161,14 @@ app.use((req, res, next) => {
 // The /api prefix keeps all API routes grouped together,
 // making it easy to add versioning later (/api/v2/analyze).
 // -------------------------------------------------------
-app.use("/api", healthRoute);           // GET /api/health, GET /api/kb
-app.use("/api/analyze", analyzeRoute);  // POST /api/analyze
+app.use("/api", healthRoute);                           // GET /api/health, GET /api/kb
+app.use("/api/analyze", analyzeRoute);                  // POST /api/analyze
 app.use("/api/upload-evidence", uploadEvidenceRoute); // POST /api/upload-evidence
 app.use("/api/build-case", buildCaseRoute);           // POST /api/build-case
 app.use("/api/risk-analysis", riskAnalysisRoute);     // POST /api/risk-analysis
 app.use("/api/opposition-agent", oppositionAgentRoute); // POST /api/opposition-agent
 app.use("/api/generate-complaint", generateComplaintRoute); // POST /api/generate-complaint
+app.use("/api/similar-cases", similarCasesRoute);           // POST /api/similar-cases
 
 // Root route - redirect to health check
 app.get("/", (req, res) => {
