@@ -37,7 +37,7 @@ async function get(endpoint) {
 }
 
 async function runTests() {
-  console.log("🧪 NyayaAI API Integration Test\n");
+  console.log("🧪 NyayaAI api Integration Test\n");
   console.log("=".repeat(50));
 
   try {

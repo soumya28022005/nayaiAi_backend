@@ -1,16 +1,4 @@
-/**
- * health.js - GET /api/health, GET /api/kb
- *
- * PURPOSE: Diagnostic endpoints for development and monitoring.
- *
- * /api/health - Verifies the server is running and API key is configured.
- * Used by frontend to check if backend is reachable before
- * showing the main interface.
- *
- * /api/kb - Returns the full legal knowledge base.
- * Useful for developers to verify what laws are loaded,
- * and for the frontend to display "supported laws" info.
- */
+
 
 const express = require("express");
 const router = express.Router();
@@ -23,8 +11,8 @@ router.get("/health", (req, res) => {
   // Explicitly map to the global process object to avoid shadowing or transpilation errors
   const env = global.process.env;
 
-  const hasApiKey = !!(env.GEMINI_API_KEY &&
-    env.GEMINI_API_KEY !== "your_gemini_api_key_here");
+  const hasapiKey = !!(env.GEMINI_api_KEY &&
+    env.GEMINI_api_KEY !== "your_gemini_api_key_here");
 
   const kbSections = getAllSections();
 
@@ -37,7 +25,7 @@ router.get("/health", (req, res) => {
     environment: env.NODE_ENV || "development",
     checks: {
       server: "✅ Running",
-      geminiApiKey: hasApiKey ? "✅ Configured" : "❌ Missing - Set GEMINI_API_KEY in .env",
+      geminiapiKey: hasapiKey ? "✅ Configured" : "❌ Missing - Set GEMINI_api_KEY in .env",
       legalKnowledgeBase: `✅ ${kbSections.length} sections loaded`,
       uploadsDirectory: "✅ Ready",
     },
@@ -48,14 +36,14 @@ router.get("/health", (req, res) => {
       { method: "POST", path: "/api/risk-analysis", description: "Identify case weaknesses" },
       { method: "POST", path: "/api/opposition-agent", description: "Simulate opposing lawyer" },
       { method: "POST", path: "/api/generate-complaint", description: "Generate legal complaint" },
+      { method: "POST", path: "/api/similar-cases", description: "Find similar cases" },
       { method: "GET",  path: "/api/health", description: "Health check" },
       { method: "GET",  path: "/api/kb", description: "View legal knowledge base" },
     ],
   });
 });
 
-// GET /api/kb
-// Returns the full legal knowledge base for inspection
+
 router.get("/kb", (req, res) => {
   console.log(`\n📚 GET /api/kb`);
   const sections = getAllSections();

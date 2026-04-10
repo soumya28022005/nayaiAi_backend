@@ -1,15 +1,6 @@
-/**
- * similarCases.js - POST /api/similar-cases
- *
- * PURPOSE: Finds similar historical cases, their typical outcomes, 
- * calculates the win probability, and estimates costs for individuals 
- * fighting without a lawyer (Pro Se / Party-in-Person) vs with a lawyer.
- * * Completely isolated route to avoid breaking existing features.
- */
-
 const express = require("express");
 const router = express.Router();
-const { callClaude, parseClaudeJSON } = require("../services/claudeService");
+const { callapi, parseapiJSON } = require("../services/apiService");
 
 router.post("/", async (req, res, next) => {
   try {
@@ -68,11 +59,11 @@ Respond with this EXACT JSON structure:
   "proSeAdvice": "2-3 sentences of specific advice for fighting this exact case WITHOUT a lawyer (Party-in-Person)."
 }`;
 
-    console.log(`\n🤖 Calling Claude for similar cases analysis...`);
+    console.log(`\n🤖 Calling api for similar cases analysis...`);
     
-    // 4. API Call to Claude
-    const rawResponse = await callClaude(systemPrompt, userMessage, 2000);
-    const analysis = parseClaudeJSON(rawResponse);
+    // 4. api Call to api
+    const rawResponse = await callapi(systemPrompt, userMessage, 2000);
+    const analysis = parseapiJSON(rawResponse);
 
     console.log(`✅ /api/similar-cases complete. Without Lawyer Win Rate: ${analysis.withoutLawyerWinPercentage}`);
 

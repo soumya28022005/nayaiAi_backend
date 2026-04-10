@@ -88,9 +88,7 @@ const upload = multer({
 });
 
 /**
- * Cleanup uploaded files after they've been processed.
- * WHY: We shouldn't store user documents longer than necessary.
- * This is especially important for sensitive legal documents.
+ 
  *
  * @param {Array} files - Array of multer file objects
  */

@@ -1,23 +1,10 @@
-/**
- * analyze.js - POST /api/analyze
- *
- * PURPOSE: First step in the NyayaAI pipeline.
- * Takes the user's raw problem description and uses Claude to:
- *   1. Extract named entities (people, dates, amounts, organizations)
- *   2. Identify the legal domain (criminal, consumer, real estate, family, etc.)
- *   3. Generate a plain-language summary of the problem
- *
- * WHY CLAUDE HERE: Entity extraction and domain classification are natural
- * language tasks that require deep understanding of Indian legal context.
- * Claude handles Hindi/Bengali names and Indian currency formats natively.
- */
+
 
 const express = require("express");
 const router = express.Router();
-const { callClaude, parseClaudeJSON } = require("../services/claudeService");
+const { callapi, parseapiJSON } = require("../services/apiService");
 
-// Language labels for the prompt
-// WHY: Claude produces better responses when told which language to reply in
+
 const LANGUAGE_MAP = {
   en: "English",
   hi: "Hindi",
@@ -44,11 +31,7 @@ router.post("/", async (req, res, next) => {
     console.log(`   Language: ${langLabel}`);
     console.log(`   Problem: "${problem.substring(0, 100)}..."`);
 
-    // -------------------------------------------------------
-    // System Prompt: Define Claude's role for entity extraction
-    // WHY: A focused system prompt produces structured, consistent output.
-    // We explicitly ask for JSON so parseClaudeJSON can handle it.
-    // -------------------------------------------------------
+   
     const systemPrompt = `You are a senior Indian legal analyst specializing in extracting structured information from legal complaints and problem descriptions. You understand Indian law including IPC, BNS, Consumer Protection Act, RERA, RTI, and family law.
 
 Your job is to analyze a legal problem and extract structured information.
@@ -82,11 +65,11 @@ ${problem}
 
 Remember: Respond ONLY with valid JSON following the exact structure specified.`;
 
-    // Call Claude API
-    const rawResponse = await callClaude(systemPrompt, userMessage);
+    // Call api api
+    const rawResponse = await callapi(systemPrompt, userMessage);
 
     // Parse the JSON response
-    const parsed = parseClaudeJSON(rawResponse);
+    const parsed = parseapiJSON(rawResponse);
 
     console.log(`   ✅ Analysis complete. Domain: ${parsed.legalDomain}, Urgency: ${parsed.urgency}`);
 

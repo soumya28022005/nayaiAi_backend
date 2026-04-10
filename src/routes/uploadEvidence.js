@@ -1,31 +1,15 @@
-/**
- * uploadEvidence.js - POST /api/upload-evidence
- *
- * PURPOSE: Handles multipart file uploads and runs OCR on each file.
- * Supports images (JPG, PNG, etc.) and PDFs.
- * After OCR extraction, uses Claude to identify key facts from the extracted text.
- *
- * PIPELINE:
- *   [File Upload] → [Multer saves to disk] → [Tesseract/pdf-parse extracts text]
- *   → [Claude identifies key facts] → [Clean up files] → [Return results]
- *
- * WHY CLEAN UP: Legal documents are sensitive. We process them and discard
- * the stored copies immediately after extraction. We never store them long-term.
- */
+
 
 const express = require("express");
 const router = express.Router();
 const { upload, cleanupFiles } = require("../middleware/uploadMiddleware");
 const { extractText } = require("../services/ocrService");
-const { callClaude, parseClaudeJSON } = require("../services/claudeService");
+const { callapi, parseapiJSON } = require("../services/apiService");
 
 /**
- * Use Claude to extract key legal facts from raw OCR text.
- * WHY: Raw OCR output is noisy. Claude can identify what actually matters
- * legally (dates, parties, amounts, signatures, terms) from the raw dump.
  *
  * @param {string} extractedText - Raw text from OCR
- * @param {string} filename - Original filename (helps Claude understand context)
+ * @param {string} filename - Original filename (helps api understand context)
  * @returns {Array} - Array of key fact strings
  */
 async function extractKeyFacts(extractedText, filename) {
@@ -58,12 +42,12 @@ ${extractedText.substring(0, 3000)} ${extractedText.length > 3000 ? "... [text t
 Identify the most legally significant facts. Be specific and factual. Respond ONLY with JSON.`;
 
   try {
-    const response = await callClaude(systemPrompt, userMessage, 1500);
-    const parsed = parseClaudeJSON(response);
+    const response = await callapi(systemPrompt, userMessage, 1500);
+    const parsed = parseapiJSON(response);
     return parsed;
   } catch (err) {
     console.warn(`   ⚠️  Key fact extraction failed for ${filename}: ${err.message}`);
-    // Return basic structure if Claude fails - don't let one file break everything
+    // Return basic structure if api fails - don't let one file break everything
     return {
       keyFacts: ["Text extracted but automatic fact analysis failed"],
       documentType: "Unknown",
@@ -76,9 +60,6 @@ Identify the most legally significant facts. Be specific and factual. Respond ON
 }
 
 // -------------------------------------------------------
-// Route Handler
-// WHY: We use upload.array("files") to accept multiple files at once.
-// This lets users upload all their evidence in a single request.
 // -------------------------------------------------------
 router.post("/", upload.array("files", 10), async (req, res, next) => {
   const uploadedFiles = req.files || [];
@@ -97,9 +78,7 @@ router.post("/", upload.array("files", 10), async (req, res, next) => {
       });
     }
 
-    // Process each file sequentially
-    // WHY: Sequential processing is safer for memory with large files.
-    // Parallel processing could exhaust RAM if all files are large.
+  
     const results = [];
 
     for (const file of uploadedFiles) {
@@ -109,8 +88,8 @@ router.post("/", upload.array("files", 10), async (req, res, next) => {
       const extractedText = await extractText(file.path, file.mimetype);
       console.log(`   📝 Extracted ${extractedText.length} characters`);
 
-      // Step 2: Claude-powered key fact extraction
-      console.log(`   🤖 Analyzing extracted text with Claude...`);
+      // Step 2: api-powered key fact extraction
+      console.log(`   🤖 Analyzing extracted text with api...`);
       const analysis = await extractKeyFacts(extractedText, file.originalname);
 
       results.push({
@@ -131,8 +110,6 @@ router.post("/", upload.array("files", 10), async (req, res, next) => {
       console.log(`   ✅ Done: ${file.originalname}`);
     }
 
-    // Step 3: Clean up uploaded files from disk
-    // WHY: We've extracted what we need; no point keeping the files
     await cleanupFiles(uploadedFiles);
 
     console.log(`\n✅ /api/upload-evidence complete. Processed ${results.length} files.`);

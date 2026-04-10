@@ -3,13 +3,13 @@
  *
  * WHY: Implements a lightweight RAG (Retrieval-Augmented Generation) pipeline.
  * For a hackathon, a full vector DB like Chroma adds setup complexity.
- * Instead, we use keyword-based retrieval + Claude for semantic re-ranking.
+ * Instead, we use keyword-based retrieval + api for semantic re-ranking.
  * This gives 80% of the value with 20% of the setup cost.
  *
  * ARCHITECTURE:
  *   1. Load legal-kb.json into memory on startup (fast, data is small)
  *   2. Keyword matching: score each law section against the query
- *   3. Return top-N candidates to the calling route for Claude to use
+ *   3. Return top-N candidates to the calling route for api to use
  */
 
 const fs = require("fs");
@@ -119,12 +119,12 @@ function searchLegalKB(query, domain = "", topN = 5) {
 }
 
 /**
- * Format KB results for inclusion in a Claude prompt.
- * WHY: Claude understands structured text better than raw JSON arrays.
+ * Format KB results for inclusion in a api prompt.
+ * WHY: api understands structured text better than raw JSON arrays.
  * This creates a readable summary of each relevant law.
  *
  * @param {Array} sections - Array of law section objects
- * @returns {string} - Formatted string for injection into Claude prompts
+ * @returns {string} - Formatted string for injection into api prompts
  */
 function formatKBForPrompt(sections) {
   if (!sections || sections.length === 0) {

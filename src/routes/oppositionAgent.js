@@ -1,23 +1,7 @@
-/**
- * oppositionAgent.js - POST /api/opposition-agent
- *
- * PURPOSE: Simulates the opposing lawyer arguing against the victim's case.
- * This is a powerful preparation tool. By seeing the best arguments
- * against your case BEFORE going to court, you can prepare rebuttals.
- *
- * WHY THIS MATTERS: In Indian courts, the opposing advocate will attack:
- *   - The credibility of evidence
- *   - The applicability of cited law sections
- *   - Procedural irregularities
- *   - The victim's own conduct (contributory factors)
- *
- * ETHICAL NOTE: We clearly mark this as simulation for preparation purposes.
- * The goal is to HELP the victim by revealing vulnerabilities.
- */
 
 const express = require("express");
 const router = express.Router();
-const { callClaude, parseClaudeJSON } = require("../services/claudeService");
+const { callapi, parseapiJSON } = require("../services/apiService");
 
 router.post("/", async (req, res, next) => {
   try {
@@ -38,7 +22,6 @@ router.post("/", async (req, res, next) => {
     console.log(`   Evidence pieces: ${evidence.length}`);
     console.log(`   Laws provided: ${relevantLaws.length}`);
 
-    // Prepare compact summaries to stay within token limits
     const evidenceSummary =
       evidence.length > 0
         ? evidence
@@ -56,12 +39,6 @@ router.post("/", async (req, res, next) => {
             .join("\n")
         : "No specific laws cited";
 
-    // -------------------------------------------------------
-    // System Prompt: Claude acts as the OPPOSING lawyer
-    // WHY: Role-playing the adversary forces Claude to find
-    // every possible attack vector in the case. This is more
-    // effective than asking "what are the weaknesses?"
-    // -------------------------------------------------------
     const systemPrompt = `You are a sharp, experienced defense advocate in an Indian court. You have been hired by the OPPOSING side (the accused/defendant) in this case. Your job is to destroy the plaintiff's/complainant's case using every legal argument available.
 
 You are NOT helping the victim - you are the opposition. Find every weakness, every inconsistency, every procedural flaw, every reason why the court should rule against the complainant.
@@ -133,9 +110,9 @@ Respond with this EXACT JSON structure:
   "complainantAdvice": "advice to the complainant on how to survive these attacks"
 }`;
 
-    console.log(`\n🤖 Calling Claude (as opposing advocate)...`);
-    const rawResponse = await callClaude(systemPrompt, userMessage, 3500);
-    const opposition = parseClaudeJSON(rawResponse);
+    console.log(`\n🤖 Calling api (as opposing advocate)...`);
+    const rawResponse = await callapi(systemPrompt, userMessage, 3500);
+    const opposition = parseapiJSON(rawResponse);
 
     console.log(
       `\n✅ /api/opposition-agent complete. ${(opposition.counterArguments || []).length} counter-arguments generated.`

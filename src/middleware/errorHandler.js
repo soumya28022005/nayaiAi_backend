@@ -23,8 +23,8 @@ function errorHandler(err, req, res, next) {
   // WHY: Map common error types to appropriate HTTP codes
   let status = err.status || err.statusCode || 500;
 
-  // Anthropic API errors often have a status property
-  if (err.message && err.message.includes("API key")) {
+  // Anthropic api errors often have a status property
+  if (err.message && err.message.includes("api key")) {
     status = 401;
   }
 

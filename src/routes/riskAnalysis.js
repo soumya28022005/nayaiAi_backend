@@ -1,21 +1,8 @@
-/**
- * riskAnalysis.js - POST /api/risk-analysis
- *
- * PURPOSE: Acts as a "devil's advocate" for the victim's case.
- * Before going to court, it's crucial to understand weaknesses.
- * This endpoint identifies:
- *   - Missing evidence that should be collected
- *   - Weak points in the current case
- *   - Procedural/legal challenges ahead
- *
- * WHY THIS MATTERS: Going to court with a weak case can be expensive and
- * time-consuming. Better to know the gaps upfront and fix them first.
- * This is what a good lawyer does during case preparation.
- */
+
 
 const express = require("express");
 const router = express.Router();
-const { callClaude, parseClaudeJSON } = require("../services/claudeService");
+const { callapi, parseapiJSON } = require("../services/apiService");
 
 router.post("/", async (req, res, next) => {
   try {
@@ -36,11 +23,7 @@ router.post("/", async (req, res, next) => {
     console.log(`   Evidence pieces: ${evidence.length}`);
     console.log(`   Laws provided: ${relevantLaws.length}`);
 
-    // -------------------------------------------------------
-    // Prepare context for Claude
-    // WHY: Claude needs the complete picture to identify gaps.
-    // We summarize evidence and laws to avoid hitting token limits.
-    // -------------------------------------------------------
+   
     const evidenceSummary =
       evidence.length > 0
         ? evidence
@@ -130,9 +113,9 @@ Analyze all risks and respond with this EXACT JSON structure:
   "recommendedStrategy": "overall strategic recommendation for proceeding"
 }`;
 
-    console.log(`\n🤖 Calling Claude for risk analysis...`);
-    const rawResponse = await callClaude(systemPrompt, userMessage, 3000);
-    const analysis = parseClaudeJSON(rawResponse);
+    console.log(`\n🤖 Calling api for risk analysis...`);
+    const rawResponse = await callapi(systemPrompt, userMessage, 3000);
+    const analysis = parseapiJSON(rawResponse);
 
     console.log(
       `\n✅ /api/risk-analysis complete. Risk level: ${analysis.overallRiskLevel}. Success probability: ${analysis.probabilityOfSuccess}`

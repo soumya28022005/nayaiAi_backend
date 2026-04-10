@@ -1,21 +1,8 @@
-/**
- * buildCase.js - POST /api/build-case
- *
- * PURPOSE: Core case-building endpoint. This is the heart of NyayaAI.
- * Takes the analyzed problem + evidence and builds a complete case document.
- *
- * PIPELINE:
- *   [Input] → [RAG: search legal KB] → [Claude: build structured case]
- *   → [Return: summary, timeline, evidence list, relevant laws]
- *
- * WHY RAG HERE: We retrieve relevant IPC/BNS/Consumer Protection sections
- * BEFORE sending to Claude. This grounds Claude's response in actual Indian law
- * and prevents hallucination of fake section numbers (a real LLM problem).
- */
+
 
 const express = require("express");
 const router = express.Router();
-const { callClaude, parseClaudeJSON } = require("../services/claudeService");
+const { callapi, parseapiJSON } = require("../services/apiService");
 const { searchLegalKB, formatKBForPrompt } = require("../services/ragService");
 
 router.post("/", async (req, res, next) => {
@@ -38,11 +25,7 @@ router.post("/", async (req, res, next) => {
     console.log(`   Language: ${language}`);
     console.log(`   Has entities: ${!!entities}`);
 
-    // -------------------------------------------------------
-    // STEP 1: RAG - Retrieve relevant legal sections
-    // WHY: Grounding Claude in actual law prevents hallucination.
-    // We search with both the problem text AND any detected domain.
-    // -------------------------------------------------------
+   
     const detectedDomain = entities?.legalDomain || "";
     const searchQuery = `${problem} ${detectedDomain}`;
 
@@ -52,11 +35,7 @@ router.post("/", async (req, res, next) => {
 
     console.log(`   📚 Retrieved ${relevantSections.length} relevant law sections`);
 
-    // -------------------------------------------------------
-    // STEP 2: Prepare evidence summary for the prompt
-    // WHY: Claude works better with a clean structured summary
-    // than raw OCR dumps which can be thousands of characters
-    // -------------------------------------------------------
+   
     const evidenceSummary =
       evidence.length > 0
         ? evidence
@@ -70,10 +49,6 @@ router.post("/", async (req, res, next) => {
             )
             .join("\n\n")
         : "No documentary evidence provided yet.";
-
-    // -------------------------------------------------------
-    // STEP 3: Build Case with Claude (using retrieved legal context)
-    // -------------------------------------------------------
     const systemPrompt = `You are a senior Indian advocate (lawyer) with 20+ years of experience in trial courts across India. You specialize in building comprehensive legal cases for ordinary citizens who cannot afford legal representation.
 
 You have deep knowledge of:
@@ -138,12 +113,12 @@ Build a comprehensive case following this EXACT JSON structure:
   "caseNotes": "any special considerations, procedural requirements, or important notes for this case"
 }`;
 
-    console.log(`\n🤖 Calling Claude to build case...`);
-    const rawResponse = await callClaude(systemPrompt, userMessage, 4096);
-    const caseData = parseClaudeJSON(rawResponse);
+    console.log(`\n🤖 Calling api to build case...`);
+    const rawResponse = await callapi(systemPrompt, userMessage, 4096);
+    const caseData = parseapiJSON(rawResponse);
 
     // Merge the KB sections into the response for completeness
-    // WHY: The raw KB objects have more detail than what Claude summarizes
+    // WHY: The raw KB objects have more detail than what api summarizes
     const relevantLawsFull = relevantSections.map((s) => ({
       act: s.act,
       section: s.section,

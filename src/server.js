@@ -74,13 +74,13 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 function validateEnvironment() {
   console.log("\n🔍 Validating environment...");
 
-  if (!process.env.GEMINI_API_KEY|| process.env.GEMINI_API_KEY === "your_anthropic_api_key_here") {
-    console.error("❌ FATAL: ANTHROPIC_API_KEY is not set in .env");
-    console.error("   Please copy .env.example to .env and add your API key.");
+  if (!process.env.GEMINI_api_KEY|| process.env.GEMINI_api_KEY === "your_anthropic_api_key_here") {
+    console.error("❌ FATAL: ANTHROPIC_api_KEY is not set in .env");
+    console.error("   Please copy .env.example to .env and add your api key.");
     process.exit(1);
   }
 
-  console.log("✅ ANTHROPIC_API_KEY: Configured");
+  console.log("✅ ANTHROPIC_api_KEY: Configured");
   console.log(`✅ PORT: ${PORT}`);
   console.log(`✅ FRONTEND_URL (CORS): ${FRONTEND_URL}`);
   console.log(`✅ NODE_ENV: ${process.env.NODE_ENV || "development"}`);
@@ -89,7 +89,7 @@ function validateEnvironment() {
 // -------------------------------------------------------
 // CORS Configuration
 // WHY: The React frontend runs on port 3000 (or Vite's 5173).
-// Without CORS headers, browsers will block all API requests
+// Without CORS headers, browsers will block all api requests
 // from the frontend to this backend (same-origin policy).
 // -------------------------------------------------------
 const corsOptions = {
@@ -158,7 +158,7 @@ app.use((req, res, next) => {
 // -------------------------------------------------------
 // Mount Routes
 // WHY: Each route file handles one cohesive feature.
-// The /api prefix keeps all API routes grouped together,
+// The /api prefix keeps all api routes grouped together,
 // making it easy to add versioning later (/api/v2/analyze).
 // -------------------------------------------------------
 app.use("/api", healthRoute);                           // GET /api/health, GET /api/kb
@@ -173,10 +173,10 @@ app.use("/api/similar-cases", similarCasesRoute);           // POST /api/similar
 // Root route - redirect to health check
 app.get("/", (req, res) => {
   res.json({
-    service: "NyayaAI Case Builder API",
+    service: "NyayaAI Case Builder api",
     version: "1.0.0",
     health: "/api/health",
-    documentation: "See README.md for API documentation",
+    documentation: "See README.md for api documentation",
   });
 });
 
@@ -213,7 +213,7 @@ async function startServer() {
 ╠═══════════════════════════════════════════════════════════╣
 ║  Status:   🟢 RUNNING                                     ║
 ║  Port:     ${PORT}                                           ║
-║  API Base: http://localhost:${PORT}/api                      ║
+║  api Base: http://localhost:${PORT}/api                      ║
 ║  Health:   http://localhost:${PORT}/api/health               ║
 ║  CORS:     ${FRONTEND_URL.padEnd(35)}║
 ╠═══════════════════════════════════════════════════════════╣
@@ -224,6 +224,7 @@ async function startServer() {
 ║  POST /api/risk-analysis        Case Risk Analysis        ║
 ║  POST /api/opposition-agent     Counter-Argument Sim      ║
 ║  POST /api/generate-complaint   Legal Complaint Draft     ║
+║  POST /api/similar-cases        Similar Cases Search      ║
 ╚═══════════════════════════════════════════════════════════╝
 `);
 
@@ -279,7 +280,7 @@ process.on("uncaughtException", (err) => {
 
   if (isTesseractNetworkError) {
     console.warn("⚠️  Tesseract model download failed (network restricted).");
-    console.warn("   OCR features disabled. All other API endpoints are fully operational.");
+    console.warn("   OCR features disabled. All other api endpoints are fully operational.");
     return; // Don't exit — server continues running without OCR
   }
 

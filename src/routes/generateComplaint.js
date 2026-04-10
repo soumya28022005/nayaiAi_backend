@@ -1,26 +1,8 @@
-/**
- * generateComplaint.js - POST /api/generate-complaint
- *
- * PURPOSE: The final step in the pipeline - generating a professionally
- * formatted legal complaint document ready to submit to court.
- *
- * WHY THIS IS VALUABLE: Most Indian citizens cannot afford lawyers to
- * draft complaints. A poorly drafted complaint can get dismissed on
- * technical grounds. This generates a court-ready document in proper
- * Indian legal format.
- *
- * OUTPUT FORMAT: The complaint follows the standard Indian legal format:
- *   - Heading (Court name, parties)
- *   - Background facts
- *   - Cause of action
- *   - Legal grounds
- *   - Prayer (relief sought)
- *   - Verification
- */
+
 
 const express = require("express");
 const router = express.Router();
-const { callClaude, parseClaudeJSON } = require("../services/claudeService");
+const { callapi, parseapiJSON } = require("../services/apiService");
 
 router.post("/", async (req, res, next) => {
   try {
@@ -51,12 +33,7 @@ router.post("/", async (req, res, next) => {
     console.log(`   Has risk analysis: ${!!riskAnalysis}`);
     console.log(`   Language: ${language}`);
 
-    // -------------------------------------------------------
-    // Prepare condensed context for the prompt
-    // WHY: Generating a complaint requires ALL the context,
-    // but we need to be selective about how much raw text we send
-    // to avoid hitting token limits.
-    // -------------------------------------------------------
+   
 
     const timelineSummary = timeline
       .map((t) => `- ${t.date}: ${t.event} [${t.legalSignificance || "relevant event"}]`)
@@ -85,7 +62,7 @@ router.post("/", async (req, res, next) => {
         : "Draft the complaint in English, using formal Indian legal language.";
 
     // -------------------------------------------------------
-    // System Prompt: Claude as expert legal drafter
+    // System Prompt: api as expert legal drafter
     // WHY: Drafting legal complaints requires precise language.
     // We're asking for BOTH the full complaint text AND a
     // structured sections breakdown so the frontend can
@@ -153,13 +130,13 @@ The complaint must include ALL standard sections:
 6. Relief Sought / Prayer Clause
 7. Verification (signature block)`;
 
-    console.log(`\n🤖 Calling Claude to generate legal complaint...`);
-    const rawResponse = await callClaude(systemPrompt, userMessage, 4096);
-    const result = parseClaudeJSON(rawResponse);
+    console.log(`\n🤖 Calling api to generate legal complaint...`);
+    const rawResponse = await callapi(systemPrompt, userMessage, 4096);
+    const result = parseapiJSON(rawResponse);
 
     // Validate that we got actual complaint text
     if (!result.complaint || result.complaint.length < 100) {
-      throw new Error("Claude generated an incomplete complaint. Please try again.");
+      throw new Error("api generated an incomplete complaint. Please try again.");
     }
 
     console.log(

@@ -1,34 +1,16 @@
-/**
- * ocrService.js
- *
- * WHY: Tesseract.js lets us run OCR entirely in Node.js without external services.
- * For Indian legal documents, we support English + Hindi + Bengali.
- * We also handle PDFs by extracting their text layer with pdf-parse,
- * falling back to page-by-page OCR if the PDF is image-based (scanned).
- */
+
 
 const Tesseract = require("tesseract.js");
 const fs = require("fs");
 const path = require("path");
 
-// WHY: We reuse a single Tesseract worker to avoid loading the engine repeatedly.
-// Workers are expensive to create; singleton pattern is standard practice.
+
 let worker = null;
 
-// Track initialization state
-// WHY: If the worker fails to init (e.g. no network for model download),
-// we should degrade gracefully rather than crashing the server.
+
 let workerInitFailed = false;
 
-/**
- * Initialize the Tesseract worker with multilingual support.
- * WHY: Indian legal docs often have Hindi or Bengali annotations.
- * Loading all 3 languages means we can handle mixed-language documents.
- *
- * On first run, Tesseract downloads ~50MB of language model files.
- * These are cached in ~/.local/share/tesseract.js after the first download.
- * If the network is unavailable, OCR will be disabled but other features work.
- */
+
 async function initWorker() {
   if (worker) return worker;           // Already initialized
   if (workerInitFailed) return null;   // Don't retry a known failure
@@ -50,14 +32,14 @@ async function initWorker() {
     workerInitFailed = true;
     worker = null;
     console.warn(`\n⚠️  Tesseract OCR worker failed to initialize: ${err.message}`);
-    console.warn("   OCR features will be unavailable. Other API features work normally.");
+    console.warn("   OCR features will be unavailable. Other api features work normally.");
     console.warn("   To enable OCR: ensure internet access for initial model download.");
     return null;
   }
 }
 
 /**
- * Extract text from an image file using Tesseract OCR.
+ * Etract text from an image file using Tesseract OCR.x
  *
  * @param {string} filePath - Absolute path to the image file
  * @returns {string} - Extracted text
@@ -82,11 +64,7 @@ async function extractTextFromImage(filePath) {
 }
 
 /**
- * Extract text from a PDF file.
- * WHY: PDFs come in two flavors:
- *   1. Text-layer PDFs (from Word, legal tools) - fast text extraction
- *   2. Image-only PDFs (scanned documents) - needs OCR
- * We try text extraction first; if it yields too little, we know it's scanned.
+    * Extract text from a PDF file.
  *
  * @param {string} filePath - Absolute path to the PDF file
  * @returns {string} - Extracted text
@@ -102,8 +80,7 @@ async function extractTextFromPDF(filePath) {
 
     const extractedText = data.text.trim();
 
-    // If we got meaningful text (more than 50 chars), use it
-    // WHY: Scanned PDFs return near-empty or garbled text from text extraction
+  
     if (extractedText.length > 50) {
       console.log(
         `   ✅ Text layer found: ${extractedText.length} chars, ${data.numpages} pages`
@@ -151,10 +128,7 @@ async function extractText(filePath, mimetype) {
   return `[Unsupported file type: ${mimetype}]`;
 }
 
-/**
- * Gracefully terminate the Tesseract worker on app shutdown.
- * WHY: Prevents zombie processes hanging around after the server stops.
- */
+
 async function terminateWorker() {
   if (worker) {
     try {
