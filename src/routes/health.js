@@ -4,12 +4,12 @@
  * PURPOSE: Diagnostic endpoints for development and monitoring.
  *
  * /api/health - Verifies the server is running and API key is configured.
- *               Used by frontend to check if backend is reachable before
- *               showing the main interface.
+ * Used by frontend to check if backend is reachable before
+ * showing the main interface.
  *
  * /api/kb - Returns the full legal knowledge base.
- *           Useful for developers to verify what laws are loaded,
- *           and for the frontend to display "supported laws" info.
+ * Useful for developers to verify what laws are loaded,
+ * and for the frontend to display "supported laws" info.
  */
 
 const express = require("express");
@@ -20,8 +20,11 @@ const { getAllSections } = require("../services/ragService");
 router.get("/health", (req, res) => {
   console.log(`\n💚 GET /api/health`);
 
-  const hasApiKey = !!(process.env.ANTHROPIC_API_KEY &&
-    process.env.ANTHROPIC_API_KEY !== "your_anthropic_api_key_here");
+  // Explicitly map to the global process object to avoid shadowing or transpilation errors
+  const env = global.process.env;
+
+  const hasApiKey = !!(env.GEMINI_API_KEY &&
+    env.GEMINI_API_KEY !== "your_gemini_api_key_here");
 
   const kbSections = getAllSections();
 
@@ -31,10 +34,10 @@ router.get("/health", (req, res) => {
     service: "NyayaAI Case Builder Backend",
     version: "1.0.0",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
+    environment: env.NODE_ENV || "development",
     checks: {
       server: "✅ Running",
-      anthropicApiKey: hasApiKey ? "✅ Configured" : "❌ Missing - Set ANTHROPIC_API_KEY in .env",
+      geminiApiKey: hasApiKey ? "✅ Configured" : "❌ Missing - Set GEMINI_API_KEY in .env",
       legalKnowledgeBase: `✅ ${kbSections.length} sections loaded`,
       uploadsDirectory: "✅ Ready",
     },

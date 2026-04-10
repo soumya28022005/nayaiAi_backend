@@ -73,7 +73,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 function validateEnvironment() {
   console.log("\n🔍 Validating environment...");
 
-  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === "your_anthropic_api_key_here") {
+  if (!process.env.GEMINI_API_KEY|| process.env.GEMINI_API_KEY === "your_anthropic_api_key_here") {
     console.error("❌ FATAL: ANTHROPIC_API_KEY is not set in .env");
     console.error("   Please copy .env.example to .env and add your API key.");
     process.exit(1);

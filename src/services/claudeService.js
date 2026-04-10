@@ -1,66 +1,67 @@
 /**
- * claudeService.js
- * 
- * WHY: Centralize all Claude API interactions in one service.
- * This makes it easy to swap models, adjust parameters, and
- * add retry logic without touching individual route files.
+ * claudeService.js (Gemini Waterfall Fallback Version)
  */
 
-const Anthropic = require("@anthropic-ai/sdk");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Initialize the Anthropic client once and reuse it
-// WHY: Creating a new client per request wastes resources; singleton is efficient
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-const MODEL = "claude-sonnet-4-20250514";
+const genAI = new GoogleGenerativeAI(global.process.env.GEMINI_API_KEY);
 const MAX_TOKENS = 4096;
 
-/**
- * Core function to call Claude API with a system prompt and user message.
- * WHY: All routes need Claude but with different system contexts.
- * This abstraction keeps each route clean and focused on business logic.
- *
- * @param {string} systemPrompt - Defines Claude's role for this call
- * @param {string} userMessage - The actual content/question
- * @param {number} maxTokens - Override default max tokens if needed
- * @returns {string} - Claude's text response
- */
+// A prioritized list of models. The script will try them in order.
+// If one is overloaded (503) or deprecated (404), it seamlessly moves to the next.
+const FALLBACK_MODELS = [
+        // Try the newest fast model first
+       // Fallback to the previous stable fast model
+  "gemini-flash-latest",    // Fallback to Google's auto-routing alias
+           // Final fallback to the heavy-duty model
+];
+
 async function callClaude(systemPrompt, userMessage, maxTokens = MAX_TOKENS) {
-  console.log(`\n🤖 Calling Claude API...`);
-  console.log(`   Model: ${MODEL}`);
-  console.log(`   Max Tokens: ${maxTokens}`);
-  console.log(`   System prompt length: ${systemPrompt.length} chars`);
-  console.log(`   User message length: ${userMessage.length} chars`);
+  console.log(`\n🤖 Calling Gemini API (Waterfall Mode)...`);
+  let lastError = null;
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: userMessage,
-      },
-    ],
-  });
+  // Loop through our model list until one works
+  for (const modelName of FALLBACK_MODELS) {
+    console.log(`   ⏳ Attempting connection to: ${modelName}...`);
+    
+    try {
+      const model = genAI.getGenerativeModel({ 
+        model: modelName,
+        systemInstruction: systemPrompt
+      });
 
-  const text = response.content[0].text;
-  console.log(`✅ Claude responded: ${text.length} chars`);
-  return text;
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: userMessage }] }],
+        generationConfig: { maxOutputTokens: maxTokens }
+      });
+
+      const text = result.response.text();
+      console.log(`   ✅ Success using ${modelName}! Responded: ${text.length} chars`);
+      return text;
+
+    } catch (error) {
+      // Extract just the first line of the error so the terminal stays clean
+      const shortError = error.message.split('\n')[0];
+      console.warn(`   ⚠️ ${modelName} rejected the request: ${shortError}`);
+      lastError = error;
+
+      // If the error is a 403 Forbidden (API key issue), stop entirely.
+      // Changing the model won't fix a bad API key.
+      if (error.message.includes("403 Forbidden")) {
+         throw error; 
+      }
+
+      // Wait 1 second before trying the next model to avoid triggering rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  // If the loop finishes and all models failed, throw the final error to the Express handler
+  console.error("\n❌ CRITICAL: All Gemini fallback models failed.");
+  throw lastError;
 }
 
-/**
- * Parse JSON safely from Claude's response.
- * WHY: Claude sometimes wraps JSON in markdown code blocks.
- * This function strips those wrappers reliably before parsing.
- *
- * @param {string} text - Raw Claude response
- * @returns {object} - Parsed JSON object
- */
 function parseClaudeJSON(text) {
-  // Strip markdown code fences if present (```json ... ```)
   let cleaned = text
     .replace(/```json\n?/g, "")
     .replace(/```\n?/g, "")
@@ -69,10 +70,8 @@ function parseClaudeJSON(text) {
   try {
     return JSON.parse(cleaned);
   } catch (err) {
-    console.error("❌ Failed to parse Claude JSON:", cleaned.substring(0, 200));
-    throw new Error(
-      `Claude returned invalid JSON: ${err.message}. Raw: ${cleaned.substring(0, 100)}`
-    );
+    console.error("❌ Failed to parse AI JSON:", cleaned.substring(0, 200));
+    throw new Error(`AI returned invalid JSON: ${err.message}`);
   }
 }
 
