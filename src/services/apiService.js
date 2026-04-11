@@ -1,66 +1,105 @@
 /**
- * apiService.js (Gemini Waterfall Fallback Version)
+ * apiService.js (Ollama → Gemini Fallback)
  */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const genAI = new GoogleGenerativeAI(global.process.env.GEMINI_api_KEY);
+// ✅ FIXED ENV NAME
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 const MAX_TOKENS = 4096;
 
-// A prioritized list of models. The script will try them in order.
-// If one is overloaded (503) or deprecated (404), it seamlessly moves to the next.
+// Gemini fallback models
 const FALLBACK_MODELS = [
-  "gemini-2.5-flash",       // Try the newest fast model first
-  "gemini-2.0-flash",       // Fallback to the previous stable fast model
-  "gemini-flash-latest",    // Fallback to Google's auto-routing alias
-  "gemini-2.5-pro"          // Final fallback to the heavy-duty model
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-flash-latest",
+  "gemini-2.5-pro"
 ];
 
+// 🧠 MAIN FUNCTION
 async function callapi(systemPrompt, userMessage, maxTokens = MAX_TOKENS) {
-  console.log(`\n🤖 Calling Gemini api (Waterfall Mode)...`);
+  console.log(`\n🤖 AI CALL: Ollama → Gemini`);
+
+  // 🟢 1. OLLAMA (LOCAL FIRST 🔥)
+  try {
+    console.log(`   ♾️ Trying Ollama (LOCAL)...`);
+
+    const res = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "mistral", // ✅ tui already download korechis
+        prompt: systemPrompt + "\n" + userMessage,
+        stream: false,
+        options: {
+          temperature: 0.7,
+          num_predict: maxTokens
+        }
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.response && data.response.length > 20) {
+      console.log(`   ✅ Ollama OK (${data.response.length} chars)`);
+      return data.response;
+    }
+
+    throw new Error("Empty Ollama response");
+
+  } catch (err) {
+    console.warn(`   ⚠️ Ollama failed → ${err.message}`);
+    console.log(`   🔄 Switching to Gemini...`);
+  }
+
+  // 🟡 2. GEMINI FALLBACK
   let lastError = null;
 
-  // Loop through our model list until one works
   for (const modelName of FALLBACK_MODELS) {
-    console.log(`   ⏳ Attempting connection to: ${modelName}...`);
-    
+    console.log(`   ⏳ Gemini: ${modelName}...`);
+
     try {
-      const model = genAI.getGenerativeModel({ 
+      const model = genAI.getGenerativeModel({
         model: modelName,
         systemInstruction: systemPrompt
       });
 
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: userMessage }] }],
-        generationConfig: { maxOutputTokens: maxTokens }
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          temperature: 0.7
+        }
       });
 
       const text = result.response.text();
-      console.log(`   ✅ Success using ${modelName}! Responded: ${text.length} chars`);
-      return text;
 
-    } catch (error) {
-      // Extract just the first line of the error so the terminal stays clean
-      const shortError = error.message.split('\n')[0];
-      console.warn(`   ⚠️ ${modelName} rejected the request: ${shortError}`);
-      lastError = error;
-
-      // If the error is a 403 Forbidden (api key issue), stop entirely.
-      // Changing the model won't fix a bad api key.
-      if (error.message.includes("403 Forbidden")) {
-         throw error; 
+      if (text && text.length > 20) {
+        console.log(`   ✅ Gemini OK (${text.length} chars)`);
+        return text;
       }
 
-      // Wait 1 second before trying the next model to avoid triggering rate limits
+    } catch (error) {
+      const shortError = error.message.split('\n')[0];
+      console.warn(`   ⚠️ ${modelName} failed: ${shortError}`);
+      lastError = error;
+
+      if (error.message.includes("403 Forbidden")) {
+        throw error;
+      }
+
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 
-  // If the loop finishes and all models failed, throw the final error to the Express handler
-  console.error("\n❌ CRITICAL: All Gemini fallback models failed.");
+  console.error("\n❌ ALL AI FAILED");
   throw lastError;
 }
 
+// 🧠 JSON PARSER (improved)
 function parseapiJSON(text) {
   let cleaned = text
     .replace(/```json\n?/g, "")
@@ -70,8 +109,18 @@ function parseapiJSON(text) {
   try {
     return JSON.parse(cleaned);
   } catch (err) {
-    console.error("❌ Failed to parse AI JSON:", cleaned.substring(0, 200));
-    throw new Error(`AI returned invalid JSON: ${err.message}`);
+    console.warn("⚠️ JSON parse failed, fixing...");
+
+    try {
+      cleaned = cleaned
+        .replace(/(\r\n|\n|\r)/gm, "")
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]");
+
+      return JSON.parse(cleaned);
+    } catch {
+      throw new Error("AI JSON invalid");
+    }
   }
 }
 
